@@ -1,0 +1,84 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+BASHTPL=${SCRIPT_DIR}/bash-tpl 
+
+print_usage()
+{
+  echo "Usage: $0 -e <env-file> -t <targetdir> file1 file2 ..."
+  exit 1
+}
+
+PARAMS=""
+
+while (( "$#" )); do
+  case "$1" in
+    -h|--help)
+      print_usage
+      shift
+      ;;
+    -e|--env-file)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        ENVFILE=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -t|--target-dir)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        TARGETDIR=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -*|--*=) # unsupported flags
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done 
+
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+#FILES=("$@")
+
+if [ "${ENVFILE}" = "" ] || [ "${TARGETDIR}" = "" ]; then
+    print_usage
+fi
+
+if [ ! -f "${ENVFILE}" ]; then
+  echo "template environment file ${ENVFILE} not found"
+  exit 1
+fi
+
+if [ ! -d "${TARGETDIR}" ]; then
+  echo "target directory \"${TARGETDIR}\" not found"
+  exit 1
+fi
+
+source ${ENVFILE}
+
+#set -x
+
+TMPDIR=$(mktemp -d)
+TMPSCRIPT=${TMPDIR}/tmp.sh
+
+for file in ${TARGETDIR}/*.tpl*
+do
+  echo "file ${file}"
+  ${BASHTPL} "${file}" > "${TMPSCRIPT}"
+  chmod a+x "${TMPSCRIPT}"
+  "${TMPSCRIPT}" > "${file}"
+done
+
+rm -r "${TMPDIR}"
+file-rename 's/\.tpl//' "${TARGETDIR}"/*

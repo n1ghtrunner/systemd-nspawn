@@ -1,0 +1,25 @@
+#!/bin/bash
+set -x
+
+USERTOCREATE=$1
+
+if [ "${USERTOCREATE}" = "" ]; then
+  echo "usage: $0 <user>"
+  exit
+fi
+
+adduser --gecos ""  --disabled-password ${USERTOCREATE}
+echo ${USERTOCREATE}:test123 | chpasswd
+usermod -a -G sudo ${USERTOCREATE}
+
+if [ -f /tmp/authorized_keys ]; then 
+  mkdir /home/${USERTOCREATE}/.ssh
+  chmod 0700 /home/${USERTOCREATE}/.ssh
+  mv /tmp/authorized_keys /home/${USERTOCREATE}/.ssh/authorized_keys
+  chmod 0600 /home/${USERTOCREATE}/.ssh/authorized_keys
+  chown -R ${USERTOCREATE}:${USERTOCREATE} /home/${USERTOCREATE}/.ssh
+fi
+
+
+
+

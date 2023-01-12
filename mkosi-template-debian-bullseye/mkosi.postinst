@@ -1,0 +1,14 @@
+#!/bin/bash
+set -x
+
+export DEBIAN_FRONTEND=noninteractive
+
+add-apt-repository "deb http://ftp.de.debian.org/debian bullseye contrib non-free"
+add-apt-repository "deb http://ftp.de.debian.org/debian/ bullseye-updates main contrib non-free"
+add-apt-repository "deb http://ftp.de.debian.org/debian/ bullseye-backports main contrib non-free"
+
+apt-get -y update
+apt-get -y upgrade
+apt-get autoclean
+
+systemctl enable systemd-networkd

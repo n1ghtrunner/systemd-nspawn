@@ -1,0 +1,102 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+BASHTPL=${SCRIPT_DIR}/bash-tpl 
+
+print_usage()
+{
+  echo "Usage: $0 -i <image_id> -t <template>"
+  exit 1
+}
+
+PARAMS=""
+
+while (( "$#" )); do
+  case "$1" in
+    -h|--help)
+      print_usage
+      shift
+      ;;
+    -i|--image-id)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        IMAGE_ID=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -t|--mkosi-template)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        MKOSI_TEMPLATE=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -*|--*=) # unsupported flags
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done 
+
+eval set -- "$PARAMS"
+
+if [ "${IMAGE_ID}" = "" ]; then
+  echo "IMAGE_ID not set"
+  print_usage
+fi
+
+if [ "${MKOSI_TEMPLATE}" = "" ]; then
+  echo "MKOSI_TEMPLATE not set"
+  print_usage
+fi
+
+TEMPLATE_COMMON_DIR="${SCRIPT_DIR}/mkosi-template-common"
+TEMPLATE_SPECIFIC_DIR="${SCRIPT_DIR}/mkosi-template-${MKOSI_TEMPLATE}"
+TARGETDIR="${SCRIPT_DIR}/build/${IMAGE_ID}"
+
+export CONTAINER_NAME=${NAME}
+
+assert_directory_exists () {
+  if [ ! -d "${1}" ]; then
+    echo "error: directory \"${1}\" not found"
+    exit 1
+  fi
+}
+
+assert_directory_exists_not () {
+  if [ -d "${1}" ]; then
+    echo "error: directory \"${1}\" should not exist"
+    exit 1
+  fi
+}
+
+assert_directory_exists "${TEMPLATE_SPECIFIC_DIR}"
+assert_directory_exists_not "${TARGETDIR}"
+
+#set -x
+
+mkdir -p "${TARGETDIR}"
+cp -r "${TEMPLATE_COMMON_DIR}"/* "${TARGETDIR}"
+cp -r "${TEMPLATE_SPECIFIC_DIR}"/* "${TARGETDIR}"
+
+TMPDIR=$(mktemp -d)
+TMPSCRIPT=${TMPDIR}/tmp.sh
+
+for file in ${TARGETDIR}/*.tpl*
+do
+  ${BASHTPL} "${file}" > "${TMPSCRIPT}"
+  chmod a+x "${TMPSCRIPT}"
+  "${TMPSCRIPT}" > "${file}"
+done
+
+rm -r "${TMPDIR}"
+
+file-rename 's/\.tpl//' "${TARGETDIR}"/*

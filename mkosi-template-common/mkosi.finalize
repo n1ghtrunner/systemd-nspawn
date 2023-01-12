@@ -1,0 +1,5 @@
+#!/bin/bash
+
+if [ ! "${1}" = "final" ]; then
+  exit 0
+fi

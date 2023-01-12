@@ -1,0 +1,10 @@
+[Exec]
+PrivateUsers=no
+Capability=all
+#SystemCallFilter=clone3 clone
+ResolvConf=auto
+# for running docker (?)
+SystemCallFilter=add_key keyctl bpf
+
+[Network]
+Bridge=br0

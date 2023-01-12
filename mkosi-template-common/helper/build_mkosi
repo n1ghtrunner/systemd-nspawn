@@ -1,0 +1,19 @@
+#!/bin/bash
+
+TARGET=$1
+
+if [ "${TARGET}" = "" ]; then
+  echo "usage: $0 <target>"
+  exit
+fi
+
+TMPDIR=$(mktemp -d)
+
+git clone https://github.com/systemd/mkosi ${TMPDIR}
+pushd ${TMPDIR}
+git checkout 984fc1c0cb590c5db62cd468fc7d2c60907cfd47
+./tools/generate-zipapp.sh
+cp ${TMPDIR}/builddir/mkosi ${TARGET}
+popd
+
+rm -rf "${TMPDIR}"
